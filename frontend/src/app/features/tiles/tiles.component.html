@@ -1,0 +1,22 @@
+<div class="tiles" [class.alert]="alerts.length>0">
+  <div class="tile">
+    <div class="label">Gross Exposure (L)</div>
+    <div class="value">{{ fmt(totals.grossExposure) }}</div>
+    <div class="limit">Limit: {{ fmt(limits.grossExposureLimit) }}</div>
+  </div>
+  <div class="tile">
+    <div class="label">Net Exposure</div>
+    <div class="value">{{ fmt(totals.netExposure) }}</div>
+  </div>
+  <div class="tile" [class.pos]="totals.unrealizedPnL>=0" [class.neg]="totals.unrealizedPnL<0">
+    <div class="label">Unrealized PnL</div>
+    <div class="value">{{ fmt(totals.unrealizedPnL) }}</div>
+  </div>
+  <div class="tile" [class.pos]="totals.realizedPnL>=0" [class.neg]="totals.realizedPnL<0">
+    <div class="label">Realized PnL</div>
+    <div class="value">{{ fmt(totals.realizedPnL) }}</div>
+  </div>
+</div>
+<div class="alerts" *ngIf="alerts.length">
+  <div *ngFor="let a of alerts | slice:-5" class="alert-item">{{ a.type }} – {{ a.message }}</div>
+</div>

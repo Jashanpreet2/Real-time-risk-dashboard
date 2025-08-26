@@ -1,0 +1,4 @@
+.container { max-width: 1200px; margin: 0 auto; padding: 16px; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+.grid { display:grid; grid-template-columns: 1fr 1fr; grid-gap: 12px; }
+footer { margin-top: 12px; opacity: .7; }

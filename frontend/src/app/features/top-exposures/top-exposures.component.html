@@ -1,0 +1,12 @@
+<table>
+  <thead><tr><th>Symbol</th><th>Qty</th><th>Exposure</th></tr></thead>
+  <tbody>
+    @for (s of symbols(); track s.sym) {
+        <tr [class.limit]="s.exp>limit">
+        <td>{{ s.sym }}</td>
+        <td>{{ s.qty }}</td>
+        <td>{{ s.exp}}</td>
+        </tr>
+    }
+  </tbody>
+</table>

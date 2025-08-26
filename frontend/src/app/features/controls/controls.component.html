@@ -1,0 +1,12 @@
+<div class="panel">
+  <button (click)="action.emit('VOLATILITY')">Spike Volatility</button>
+  <button (click)="action.emit('BURST')">Burst Trades</button>
+  <button (click)="action.emit('FAIL_FEED')">Kill Feed</button>
+  <button (click)="action.emit('RECOVER')">Recover</button>
+</div>
+<div class="panel">
+  <label>Gross Limit <input type="number" [(ngModel)]="limits.grossExposureLimit"></label>
+  <label>Single-Name <input type="number" [(ngModel)]="limits.singleNameLimit"></label>
+  <label>Drawdown <input type="number" [(ngModel)]="limits.drawdownLimit"></label>
+  <button (click)="updateLimits.emit(limits)">Apply Limits</button>
+</div>

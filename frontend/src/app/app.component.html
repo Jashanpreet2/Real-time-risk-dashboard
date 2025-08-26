@@ -1,0 +1,22 @@
+<div class="container">
+  <header>
+    <h1>Real-Time Risk Dashboard</h1>
+    <div class="meta">
+      <span *ngIf="snapshot as snapshot">Latency: {{ now - snapshot.ts }} ms • TPS: {{ snapshot.tradesPerSec }}</span>
+    </div>
+  </header>
+
+  @if (snapshot) {
+  <section class="grid">
+    <app-tiles [totals]="snapshot.totals" [limits]="snapshot.limits" [alerts]="snapshot.alerts"></app-tiles>
+    <app-health [health]="snapshot.health"></app-health>
+    <app-pnl-chart [snapshot]="snapshot"></app-pnl-chart>
+    <app-top-exposures [perSymbol]="snapshot.perSymbol" [limit]="snapshot.limits.singleNameLimit"></app-top-exposures>
+    <app-controls (action)="onAction($event)" (updateLimits)="onUpdateLimits($event)"></app-controls>
+  </section>
+  }
+
+  <footer>
+    <small>Central Risk Book mini-sim • Demo only</small>
+  </footer>
+</div>
