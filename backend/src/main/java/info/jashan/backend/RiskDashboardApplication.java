@@ -20,7 +20,7 @@ public class RiskDashboardApplication {
 
     @Bean
     public RiskEngine riskEngine(TradeGenerator gen) {
-        return new RiskEngine(gen.flux());
+        return new RiskEngine(gen.flux(), gen);
     }
 
     @Bean

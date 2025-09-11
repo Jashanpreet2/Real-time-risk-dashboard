@@ -9,17 +9,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RiskEngine {
-    private final Map<String, Position> positions = new ConcurrentHashMap<>();
-    private final Map<String, Double> mids = new ConcurrentHashMap<>();
     private final Sinks.Many<Snapshot> snapshots = Sinks.many().replay().latest();
-
-    private volatile double realizedPnL = 0.0;
+    private final TradeGenerator tradeGenerator;
     private volatile Limits limits = new Limits(5_000_000, 1_500_000, 250_000);
     private volatile Health health = new Health(true, true, true);
     private volatile double peakTotalPnL = 0.0;
     private volatile int tradesInWindow = 0;
 
-    public RiskEngine(Flux<Trade> tradeFlux) {
+    public RiskEngine(Flux<Trade> tradeFlux, TradeGenerator tradeGenerator) {
+        this.tradeGenerator = tradeGenerator;
         tradeFlux.subscribe(this::onTrade);
         Flux.interval(Duration.ofMillis(250)).subscribe(t -> publishSnapshot());
         Flux.interval(Duration.ofSeconds(1)).subscribe(t -> tradesInWindow = 0); // reset TPS counter window
@@ -27,27 +25,6 @@ public class RiskEngine {
 
     private void onTrade(Trade tr) {
         tradesInWindow++;
-        mids.merge(tr.symbol(), tr.price(), (a,b) -> b); // latest price as mid for simplicity
-        Position p = positions.getOrDefault(tr.symbol(), new Position(0, 0));
-        int qty = p.qty();
-        double avg = p.avgPrice();
-
-        if (tr.side() == Trade.Side.BUY) {
-            // new avg price
-            double newAvg = (qty * avg + tr.qty() * tr.price()) / (qty + tr.qty());
-            positions.put(tr.symbol(), new Position(qty + tr.qty(), newAvg));
-        } else {
-            int sellQty = tr.qty();
-            int newQty = qty - sellQty;
-            // realized PnL on closed quantity (simple model)
-            int closed = Math.min(qty, sellQty);
-            realizedPnL += closed * (tr.price() - avg);
-            if (newQty <= 0) {
-                positions.put(tr.symbol(), new Position(newQty, 0));
-            } else {
-                positions.put(tr.symbol(), new Position(newQty, avg));
-            }
-        }
     }
 
     private void publishSnapshot() {
@@ -56,10 +33,10 @@ public class RiskEngine {
         double net = 0, gross = 0, unreal = 0;
         List<Alert> alerts = new ArrayList<>();
 
-        for (var e : positions.entrySet()) {
+        for (var e : tradeGenerator.getPositions().entrySet()) {
             String sym = e.getKey();
             Position pos = e.getValue();
-            double mid = mids.getOrDefault(sym, pos.avgPrice());
+            double mid = tradeGenerator.getMids().getOrDefault(sym, pos.avgPrice());
             double exposure = pos.qty() * mid;
             double upnl = pos.qty() * (mid - pos.avgPrice());
             per.put(sym, new Snapshot.PerSymbol(pos.qty(), pos.avgPrice(), mid, upnl, Math.abs(exposure)));
@@ -71,7 +48,7 @@ public class RiskEngine {
             }
         }
 
-        double total = realizedPnL + unreal;
+        double total = tradeGenerator.getRealizedPnL() + unreal;
         if (total > peakTotalPnL) peakTotalPnL = total;
         if (gross > limits.grossExposureLimit()) {
             alerts.add(new Alert("GROSS_EXPOSURE_LIMIT", "Gross " + fmt(gross) + " > limit", now));
@@ -84,7 +61,7 @@ public class RiskEngine {
             alerts.add(new Alert("FEED_DOWN", "Market data feed down", now));
         }
 
-        Snapshot.Totals totals = new Snapshot.Totals(net, gross, realizedPnL, unreal, total);
+        Snapshot.Totals totals = new Snapshot.Totals(net, gross, tradeGenerator.getRealizedPnL(), unreal, total);
         Snapshot snap = new Snapshot(now, per, totals, limits, health, tradesInWindow, alerts.isEmpty()? "OK":"ALERT", alerts);
         snapshots.tryEmitNext(snap);
     }
